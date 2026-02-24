@@ -28,6 +28,7 @@ void whb04b_setup(__xdata struct whb04b_context *whb04b)
     // Start timeout timers
     timeout_start(&whb04b->rf_search_timeout);
     timeout_start_max(&whb04b->rf_recv_timeout);
+    timeout_start_max(&whb04b->usb_recv_timeout);
 }
 
 void whb04b_process(__xdata struct whb04b_context *whb04b)
@@ -40,8 +41,15 @@ void whb04b_process(__xdata struct whb04b_context *whb04b)
     if(ret == sizeof(whb04b->report06_usb)) {
         // TODO: error checking...
         ret = whb04b_convert_report06(whb04b);
-        whb04b_forward_report06(whb04b);
+        if(ret != sizeof(whb04b->report04_usb)) {
+            timeout_start(&whb04b->usb_recv_timeout);
+        }
     }
+    // TODO: Don't hardcode timeout
+    if(timeout_elapsed(&whb04b->usb_recv_timeout, 20000)) {
+        whb04b_invalidate_report06(whb04b);
+    }
+    whb04b_forward_report06(whb04b);
 
     // Forward data from pendant to computer
     ret = hw3000_rxdata_get(&whb04b->report04_rf, sizeof(whb04b->report04_rf));
@@ -132,6 +140,35 @@ uint8_t whb04b_convert_report06(__xdata struct whb04b_context *whb04b)
     rep_rf->checksum = crc8_nrsc_5_00(rep_rf, sizeof(*rep_rf) - 1);
 
     return sizeof(*rep_usb);
+}
+
+void whb04b_invalidate_report06(__xdata struct whb04b_context *whb04b)
+{
+    __xdata struct whb04b_report06_rf *rep_rf;
+
+    rep_rf = &whb04b->report06_rf;
+
+    rep_rf->len = sizeof(*rep_rf);
+    rep_rf->magic = 'W';
+    rep_rf->channel = whb04b->rf_channel;
+    rep_rf->id_low = whb04b->config.id_low;
+    rep_rf->id_mid = whb04b->config.id_mid;
+    rep_rf->id_high = whb04b->config.id_high;
+
+    // Light up the screen as well as possible
+    rep_rf->mode = 0;
+    rep_rf->unknown = 0;
+    rep_rf->reset = 1;
+    rep_rf->work_coord = 1;
+    rep_rf->axis[0].integer = 8888;
+    rep_rf->axis[0].decimal = 8888;
+    rep_rf->axis[1].integer = 8888;
+    rep_rf->axis[1].decimal = 8888;
+    rep_rf->axis[2].integer = 8888;
+    rep_rf->axis[2].decimal = 8888;
+    rep_rf->override = 8888;
+
+    rep_rf->checksum = crc8_nrsc_5_00(rep_rf, sizeof(*rep_rf) - 1);
 }
 
 uint8_t whb04b_forward_report06(__xdata struct whb04b_context *whb04b)

@@ -226,21 +226,20 @@ uint8_t usb_get_report06(__xdata uint8_t *buffer, uint8_t maxlen)
         len = maxlen;
     }
 
-    // We require offset to be at zero so we don't copy in the middle of an update
+    // Wait for USB_HID_REPORT06_READY to be 1. We set it to zero when the report is read
+    // and it's set to one by the USB ISR next time a complete report has been received.
+    // That way we can keep track of when the last report was received from the host.
     start_ticks = timer0_ticks();
     while(timer0_ticks() - start_ticks < 10) {
-        // Check if offset is at zero
-        if(USB_HID_REPORT06_OFFSET != 0) {
-            continue;
-        }
         // Check again after disabling interrupts
         E_DIS = 1;
-        if(USB_HID_REPORT06_OFFSET != 0) {
+        if(USB_HID_REPORT06_READY != 1) {
             E_DIS = 0;
             continue;
         }
         // Now we are safe to copy the report...
         memcpyxx(buffer, USB_HID_REPORT06, len);
+        USB_HID_REPORT06_READY = 0;
         E_DIS = 0;
         return len;
     }

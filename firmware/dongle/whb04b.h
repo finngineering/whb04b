@@ -43,7 +43,15 @@ struct whb04b_report06_rf {
     uint8_t id_low;
     uint8_t id_mid;
     uint8_t id_high;
-    uint8_t flags;
+    union {
+        struct {
+            uint8_t mode:2;
+            uint8_t unknown:4;
+            uint8_t reset:1;
+            uint8_t work_coord:1;
+        };
+        uint8_t flags;
+    };
     struct whb04b_axis axis[3];
     uint16_t override; // This is either feedrate or spindle override
     uint8_t checksum;
@@ -82,6 +90,7 @@ struct whb04b_context {
     uint8_t rf_channel;
     timeout_t rf_search_timeout;
     timeout_t rf_recv_timeout;
+    timeout_t usb_recv_timeout;
     struct whb04b_report06_usb report06_usb;
     struct whb04b_report06_rf report06_rf;
     struct whb04b_report04_usb report04_usb;
@@ -92,6 +101,7 @@ struct whb04b_context {
 void whb04b_setup(__xdata struct whb04b_context *whb04b);
 void whb04b_process(__xdata struct whb04b_context *whb04b);
 uint8_t whb04b_convert_report06(__xdata struct whb04b_context *whb04b);
+void whb04b_invalidate_report06(__xdata struct whb04b_context *whb04b);
 uint8_t whb04b_forward_report06(__xdata struct whb04b_context *whb04b);
 uint8_t whb04b_convert_report04(__xdata struct whb04b_context *whb04b);
 void whb04b_refresh_report04(__xdata struct whb04b_context *whb04b);
