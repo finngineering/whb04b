@@ -4,6 +4,12 @@ This is an effort to create open source firmware for the wireless XHC WHB04B(-6)
 ## Dongle firmware
 At this time, only the dongle firmware is under development. The dongle essentially consists of a CH554 microcontroller and a HW3000 433 MHz RF module. The dongle firmware is located in the firmware/dongle folder. It is currently not ready for "production" use.
 
+The firmware_readout tool inside the tools folder should be usable to provide a partial readout of the factory dongle firmware. This is possible because by trying to read an unused descriptor, it just keeps reading program memory from where it last left off. Unfortunately, it appears that reading past the bootloader memory causes the device to reset, so we cannot "wrap around" the 16-bit memory space to continue reading from address 0. In the factory firmware for my dongle, I can read normal program memory from address 0x2913 to 0x37ff, which is approximately 27% of the usable program memory space. The program instructions end at address 0x3408, which means I could read 21% of the firmware.
+
+I have obtained the complete firmware through another process explained here:
+https://github.com/finngineering/ch55x_firmware_extractor
+So if somebody else does a partial readout, we can check if the partial readout matches my firmware. If it does, it's very likely that the whole firmware is the same.
+
 ## Pendant firmware
 There is currently no real plans for developing an open source firmware for the pendant itself.
 
