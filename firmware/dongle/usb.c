@@ -153,6 +153,10 @@ void usb_setup(void)
 
     USB_PROCESS_TICKS = timer0_ticks();
     USB_SEND_EP1 = 0;
+
+    // Enable USB interrupts
+    USB_INT_EN = bUIE_SUSPEND | bUIE_TRANSFER | bUIE_BUS_RST;
+    IE_USB = 1;
 }
 
 void usb_reset(void)
@@ -178,10 +182,6 @@ void usb_reset(void)
 
     // Reset potential interrupt flags
     USB_INT_FG = 0xff;
-    // Enable USB interrupts
-    USB_INT_EN = bUIE_SUSPEND | bUIE_TRANSFER | bUIE_BUS_RST;
-    IE_USB = 1;
-
 }
 
 void usb_process(void)
@@ -289,10 +289,27 @@ void usb_isr(void) __interrupt (INT_NO_USB)
         UIF_SUSPEND = 0;
     }
     if(UIF_BUS_RST) {
-        // TODO: This needs to be handled. Use usb_reset but without forcing the reset
-        UIF_BUS_RST = 0;
+        // This is almost the same as usb_reset(), but calling that function from the
+        // ISR is not safe
 
+        // Clear FIFO and interrupt flags
+        USB_CTRL |= bUC_CLR_ALL;
+        USB_CTRL &= ~bUC_CLR_ALL;
+
+        // Enable physical port
+        UDEV_CTRL = bUD_PD_DIS | bUD_PORT_EN; // Disable PD resistors, enable USB port
+        // Device address 0
+        USB_DEV_AD = 0;
+
+        // Setup EP0
         UEP0_CTRL = UEP_R_RES_NAK | UEP_T_RES_NAK;
+        UEP0_T_LEN = 0;
+        // Setup EP1. NAK by default
+        UEP1_CTRL = UEP_R_RES_NAK | UEP_T_RES_NAK;
+        UEP1_T_LEN = 0;
+
+        // Reset potential interrupt flags
+        USB_INT_FG = 0xff;
     }
 }
 
