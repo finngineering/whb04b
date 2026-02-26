@@ -24,7 +24,7 @@ void spi_write16(uint8_t addr, uint16_t val);
 uint16_t spi_read16(uint8_t addr);
 void spi_write8(uint8_t addr, uint8_t val);
 uint8_t spi_read8(uint8_t addr);
-void spi_writebytes(uint8_t addr, __xdata uint8_t *buffer, uint8_t len);
+void spi_writebytes(uint8_t addr, __xdata const uint8_t *buffer, uint8_t len);
 void spi_readbytes(uint8_t addr, __xdata uint8_t *buffer, uint8_t len);
 
 #endif

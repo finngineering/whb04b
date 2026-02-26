@@ -65,3 +65,16 @@ stop:
 
 run:
 	../../driver/whb04b
+
+CPPCHECK_ARGS += --enable=all
+CPPCHECK_ARGS += --check-level=exhaustive
+CPPCHECK_ARGS += -I /usr/share/sdcc/include/
+CPPCHECK_ARGS += -I /usr/share/sdcc/include/mcs51/
+CPPCHECK_ARGS += -DFREQ_SYS=$(FREQ_SYS)
+CPPCHECK_ARGS += --suppress=staticFunction
+CPPCHECK_ARGS += --suppress=unusedFunction
+CPPCHECK_ARGS += --inline-suppr
+CPPCHECK_ARGS += --inconclusive
+
+check:
+	cppcheck $(CPPCHECK_ARGS) *.c

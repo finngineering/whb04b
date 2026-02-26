@@ -173,7 +173,7 @@ uint8_t spi_read8(uint8_t addr)
     return val;
 }
 
-void spi_writebytes(uint8_t addr, __xdata uint8_t *buffer, uint8_t len)
+void spi_writebytes(uint8_t addr, __xdata const uint8_t *buffer, uint8_t len)
 {
     // MSB high to indicat write operation
     addr |= 0x80;

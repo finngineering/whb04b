@@ -179,7 +179,7 @@ uint8_t whb04b_forward_report06(__xdata struct whb04b_context *whb04b)
 uint8_t whb04b_convert_report04(__xdata struct whb04b_context *whb04b)
 {
     __xdata struct whb04b_report04_usb *rep_usb;
-    __xdata struct whb04b_report04_rf *rep_rf;
+    __xdata const struct whb04b_report04_rf *rep_rf;
     uint8_t wday;
 
     rep_usb = &whb04b->report04_usb;
@@ -194,10 +194,10 @@ uint8_t whb04b_convert_report04(__xdata struct whb04b_context *whb04b)
     if(rep_rf->id_low != whb04b->config.id_low) {
         return 3;
     }
-    if(rep_rf->id_low != whb04b->config.id_low) {
+    if(rep_rf->id_mid != whb04b->config.id_mid) {
         return 4;
     }
-    if(rep_rf->id_low != whb04b->config.id_low) {
+    if(rep_rf->id_high != whb04b->config.id_high) {
         return 5;
     }
     if(rep_rf->checksum != crc8_nrsc_5_00(rep_rf, sizeof(*rep_rf) - 1)) {
@@ -216,6 +216,7 @@ uint8_t whb04b_convert_report04(__xdata struct whb04b_context *whb04b)
 
     // Update which override is in use based on buttons pressed
     // TODO: Should we simply ignore button2? Need to test how the pendant is reacting if two buttons pressed...
+    // TODO: Or should we just accept a higher delay and let the LinuxCNC driver handle this?
     if(rep_rf->button1 == 0x04 || rep_rf->button1 == 0x05) {
         // Feed+ or Feed- button pressed
         whb04b->override_spindle = 0;
@@ -230,11 +231,9 @@ uint8_t whb04b_convert_report04(__xdata struct whb04b_context *whb04b)
 void whb04b_refresh_report04(__xdata struct whb04b_context *whb04b)
 {
     __xdata struct whb04b_report04_usb *rep_usb;
-    __xdata struct whb04b_report04_rf *rep_rf;
     uint8_t wday;
 
     rep_usb = &whb04b->report04_usb;
-    rep_rf = &whb04b->report04_rf;
 
     rep_usb->report_id = 0x04;
     rep_usb->timer = timeout_update(&whb04b->rf_recv_timeout) >> 8;

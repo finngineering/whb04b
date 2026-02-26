@@ -247,7 +247,7 @@ uint8_t usb_get_report06(__xdata uint8_t *buffer, uint8_t maxlen)
     return 0;
 }
 
-uint8_t usb_set_report04(__xdata uint8_t *buffer, uint8_t len)
+uint8_t usb_set_report04(__xdata const uint8_t *buffer, uint8_t len)
 {
     if(len > sizeof(USB_HID_REPORT04)) {
         len = sizeof(USB_HID_REPORT04);
@@ -265,6 +265,7 @@ void usb_isr(void) __interrupt (INT_NO_USB)
 {
     // If we have a control transfer, we cancel previous response states quickly. This prevents
     // e.g. a previous STALL from being sent to the current (handled) control transfer
+    // cppcheck-suppress badBitmaskCheck
     if((USB_INT_ST & (MASK_UIS_TOKEN | MASK_UIS_ENDP)) == (UIS_TOKEN_SETUP | 0)) {
         UEP0_CTRL = UEP_R_RES_NAK | UEP_T_RES_NAK;
     }
@@ -286,6 +287,7 @@ void usb_isr(void) __interrupt (INT_NO_USB)
     }
     if(UIF_SUSPEND) {
         // TODO: Not sure if there is much we can do here...
+        (void)UIF_SUSPEND; // Suppress cppcheck warning
         UIF_SUSPEND = 0;
     }
     if(UIF_BUS_RST) {
@@ -317,7 +319,6 @@ void usb_handle_EP0(void)
 {
     __code static uint8_t *txPtr = 0;
     static uint8_t txLen = 0;
-    uint8_t descLen;
     uint8_t curLen;
 
     uint8_t token = USB_INT_ST & MASK_UIS_TOKEN;
@@ -339,7 +340,7 @@ void usb_handle_EP0(void)
                 UEP0_T_LEN = 2;
                 break;
             case USB_GET_DESCRIPTOR:
-                descLen = 0;
+                    uint8_t descLen = 0;
                 // Only allow reading descriptor number 0, but we have no other ones
                 if(USB_EP0_SETUP.wValueL != 0) {
                     UEP0_CTRL = bUEP_R_TOG | bUEP_T_TOG | UEP_R_RES_ACK | UEP_T_RES_STALL;
@@ -459,9 +460,8 @@ void usb_handle_EP0(void)
         }
     } else if(token == UIS_TOKEN_IN) {
         // Send data to host...
-        if(UEP0_T_LEN != 0) {
-            UEP0_T_LEN = 0;
-        }
+        // Default to 0 length or no transmission
+        UEP0_T_LEN = 0;
         if((USB_EP0_SETUP.bRequestType & USB_REQ_TYP_MASK) == USB_REQ_TYP_STANDARD) {
             // Process standard request, any recipient, IN
             // TODO: Should split this by recipient as well

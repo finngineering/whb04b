@@ -38,7 +38,7 @@ __code uint8_t nrsc_5_lookup[] = {
     0x3B, 0x0A, 0x59, 0x68, 0xFF, 0xCE, 0x9D, 0xAC,
 };
 
-uint8_t crc8_nrsc_5_00(__xdata uint8_t *buffer, uint8_t len)
+uint8_t crc8_nrsc_5_00(__xdata const uint8_t *buffer, uint8_t len)
 {
     uint8_t checksum = 0;
 

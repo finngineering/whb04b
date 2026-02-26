@@ -75,14 +75,14 @@ void hw3000_rx_disable(void);
 int8_t hw3000_calibrate(void);
 void hw3000_channel_set(uint8_t channel);
 uint8_t hw3000_fifo_read(__xdata uint8_t *buffer, uint8_t maxlen);
-void hw3000_fifo_write(__xdata uint8_t *buffer, uint8_t len);
-void hw3000_fifo_tx(__xdata uint8_t *buffer, uint8_t len);
+void hw3000_fifo_write(__xdata const uint8_t *buffer, uint8_t len);
+void hw3000_fifo_tx(__xdata const uint8_t *buffer, uint8_t len);
 void hw3000_channel_change(uint8_t channel);
 
 void hw3000_power(uint8_t on);
 
 void hw3000_process(void);
-uint8_t hw3000_txdata_set(__xdata uint8_t *buffer, uint8_t len);
+uint8_t hw3000_txdata_set(__xdata const uint8_t *buffer, uint8_t len);
 uint8_t hw3000_rxdata_get(__xdata uint8_t *buffer, uint8_t maxlen);
 void hw3000_txdata_send(void);
 

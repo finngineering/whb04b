@@ -5,6 +5,6 @@
 
 #include "defs.h"
 
-uint8_t crc8_nrsc_5_00(__xdata uint8_t *buffer, uint8_t len);
+uint8_t crc8_nrsc_5_00(__xdata const uint8_t *buffer, uint8_t len);
 
 #endif

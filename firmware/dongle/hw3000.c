@@ -227,11 +227,9 @@ void hw3000_rx_disable(void)
 
 int8_t hw3000_calibrate(void)
 {
-    uint16_t val;
-
     spi_write16(HW3000_REG_RCCFG1, 0x002b);
     for(uint8_t i = 0; i < 50; i++) {
-        val = spi_read16(HW3000_REG_RCSTA);
+            uint16_t val = spi_read16(HW3000_REG_RCSTA);
         if((val & 0x8000) == 0x8000) {
             return 0;
         }
@@ -269,12 +267,12 @@ uint8_t hw3000_fifo_read(__xdata uint8_t *buffer, uint8_t maxlen)
     return len;
 }
 
-void hw3000_fifo_write(__xdata uint8_t *buffer, uint8_t len)
+void hw3000_fifo_write(__xdata const uint8_t *buffer, uint8_t len)
 {
     spi_writebytes(HW3000_REG_FIFODATA, buffer, len);
 }
 
-void hw3000_fifo_tx(__xdata uint8_t *buffer, uint8_t len)
+void hw3000_fifo_tx(__xdata const uint8_t *buffer, uint8_t len)
 {
     if(state != HW3000_STATE_TX) {
         if(state != HW3000_STATE_IDLE) {
@@ -340,7 +338,7 @@ void hw3000_process(void)
     }
 }
 
-uint8_t hw3000_txdata_set(__xdata uint8_t *buffer, uint8_t len)
+uint8_t hw3000_txdata_set(__xdata const uint8_t *buffer, uint8_t len)
 {
     if(len > sizeof(tx_buffer)) {
         len = sizeof(tx_buffer);
