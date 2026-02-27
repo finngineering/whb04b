@@ -126,6 +126,8 @@ void usb_handle_EP1(void);
 // INFO: It appears that no interrupts are generated in case endpoint control is set to NAK or STALL,
 // i.e. UEP1_CTRL = UEP_R_RES_NAK. The exception is SETUP packets on EP0 (and perhaps others?)
 
+// NOTE: to self. Always set the UEPn_T_LEN register prior to UEPn_CTRL to avoid race conditions (not important in ISR)
+
 void usb_setup(void)
 {
     __code uint8_t report06_init[] = {0xfe, 0xfd, 0x01, 0xc2};
@@ -174,11 +176,11 @@ void usb_reset(void)
     USB_DEV_AD = 0;
 
     // Setup EP0
-    UEP0_CTRL = UEP_R_RES_NAK | UEP_T_RES_NAK;
     UEP0_T_LEN = 0;
+    UEP0_CTRL = UEP_R_RES_NAK | UEP_T_RES_NAK;
     // Setup EP1. NAK by default
-    UEP1_CTRL = UEP_R_RES_NAK | UEP_T_RES_NAK;
     UEP1_T_LEN = 0;
+    UEP1_CTRL = UEP_R_RES_NAK | UEP_T_RES_NAK;
 
     // Reset potential interrupt flags
     USB_INT_FG = 0xff;
@@ -201,17 +203,17 @@ void usb_process(void)
     E_DIS = 1;
     // Check if we should send data
     if(USB_SEND_EP1 == 1) {
-        USB_PROCESS_TICKS = ticks;
-
         // In case a transfer is already in progress, wait for it to complete before sending
         if(UEP1_T_LEN == 0) {
+            USB_PROCESS_TICKS = ticks;
+
             // Copy report to endpoint buffer
             memcpyxx(USB_EP1_BUF, &USB_HID_REPORT04, sizeof(USB_HID_REPORT04));
 
             USB_SEND_EP1 = 0;
             // Enable EP1 transmitter (will be disable in interrupt after transfer)
-            UEP1_CTRL = (UEP1_CTRL & ~MASK_UEP_T_RES) | UEP_T_RES_ACK;
             UEP1_T_LEN = 8;
+            UEP1_CTRL = (UEP1_CTRL & ~MASK_UEP_T_RES) | UEP_T_RES_ACK;
         }
     }
     E_DIS = 0;
@@ -304,11 +306,11 @@ void usb_isr(void) __interrupt (INT_NO_USB)
         USB_DEV_AD = 0;
 
         // Setup EP0
-        UEP0_CTRL = UEP_R_RES_NAK | UEP_T_RES_NAK;
         UEP0_T_LEN = 0;
+        UEP0_CTRL = UEP_R_RES_NAK | UEP_T_RES_NAK;
         // Setup EP1. NAK by default
-        UEP1_CTRL = UEP_R_RES_NAK | UEP_T_RES_NAK;
         UEP1_T_LEN = 0;
+        UEP1_CTRL = UEP_R_RES_NAK | UEP_T_RES_NAK;
 
         // Reset potential interrupt flags
         USB_INT_FG = 0xff;
@@ -336,8 +338,8 @@ void usb_handle_EP0(void)
                 // Since we don't implement any of these features, always return two empty bytes
                 USB_EP0_BUF[0] = 0;
                 USB_EP0_BUF[1] = 0;
-                UEP0_CTRL = bUEP_R_TOG | bUEP_T_TOG | UEP_R_RES_ACK | UEP_T_RES_ACK;
                 UEP0_T_LEN = 2;
+                UEP0_CTRL = bUEP_R_TOG | bUEP_T_TOG | UEP_R_RES_ACK | UEP_T_RES_ACK;
                 break;
             case USB_GET_DESCRIPTOR:
                     uint8_t descLen = 0;
@@ -390,21 +392,21 @@ void usb_handle_EP0(void)
                         txLen = USB_EP0_SETUP.wLengthL - curLen;
                     }
 
-                    UEP0_CTRL = bUEP_R_TOG | bUEP_T_TOG | UEP_R_RES_ACK | UEP_T_RES_ACK;
                     UEP0_T_LEN = curLen;
+                    UEP0_CTRL = bUEP_R_TOG | bUEP_T_TOG | UEP_R_RES_ACK | UEP_T_RES_ACK;
                 } else {
                     // Stall!
                     UEP0_CTRL = bUEP_R_TOG | bUEP_T_TOG | UEP_R_RES_ACK | UEP_T_RES_STALL;
                 }
                 break;
             case USB_SET_ADDRESS:
-                UEP0_CTRL = bUEP_R_TOG | bUEP_T_TOG | UEP_R_RES_ACK | UEP_T_RES_ACK;
                 UEP0_T_LEN = 0;
+                UEP0_CTRL = bUEP_R_TOG | bUEP_T_TOG | UEP_R_RES_ACK | UEP_T_RES_ACK;
                 break;
             case USB_GET_CONFIGURATION:
                 USB_EP0_BUF[0] = USB_CONFIGURATION;
-                UEP0_CTRL = bUEP_R_TOG | bUEP_T_TOG | UEP_R_RES_ACK | UEP_T_RES_ACK;
                 UEP0_T_LEN = 1;
+                UEP0_CTRL = bUEP_R_TOG | bUEP_T_TOG | UEP_R_RES_ACK | UEP_T_RES_ACK;
                 break;
             case USB_SET_CONFIGURATION:
                 UEP0_T_LEN = 0;
@@ -423,8 +425,8 @@ void usb_handle_EP0(void)
             case USB_SYNCH_FRAME:
                 // We explicitly don't support these requests...
                 // TODO: Technically, the ENDPOINT_HALT should be implemented for bulk and int endpoints...
-                UEP0_CTRL = bUEP_R_TOG | bUEP_T_TOG | UEP_R_RES_ACK | UEP_T_RES_STALL;
                 UEP0_T_LEN = 0;
+                UEP0_CTRL = bUEP_R_TOG | bUEP_T_TOG | UEP_R_RES_ACK | UEP_T_RES_STALL;
                 break;
             default:
                 // Stall for unhandled requests
@@ -448,11 +450,11 @@ void usb_handle_EP0(void)
                     // We need to avoid multiplication in ISR, so times 32 has to be close enough
                     USB_IDLE_SETTING = USB_EP0_SETUP.wValueH << 5;
                 }
+                UEP0_T_LEN = 0;
                 UEP0_CTRL = bUEP_R_TOG | bUEP_T_TOG | UEP_R_RES_NAK | UEP_T_RES_ACK;
-                UEP0_T_LEN = 0;
             } else if(USB_EP0_SETUP.bRequest == HID_SET_REPORT) {
-                UEP0_CTRL = bUEP_R_TOG | bUEP_T_TOG | UEP_R_RES_ACK | UEP_T_RES_ACK;
                 UEP0_T_LEN = 0;
+                UEP0_CTRL = bUEP_R_TOG | bUEP_T_TOG | UEP_R_RES_ACK | UEP_T_RES_ACK;
           }
         } else {
             // Non-standard requests
@@ -473,8 +475,8 @@ void usb_handle_EP0(void)
                 txPtr += curLen;
                 txLen -= curLen;
 
-                UEP0_CTRL ^= bUEP_T_TOG;
                 UEP0_T_LEN = curLen;
+                UEP0_CTRL ^= bUEP_T_TOG;
             } else if(USB_EP0_SETUP.bRequest == USB_SET_ADDRESS) {
                 USB_DEV_AD = USB_EP0_SETUP.wValueL;
                 UEP0_CTRL = UEP_R_RES_ACK | UEP_T_RES_NAK;
@@ -518,8 +520,8 @@ void usb_handle_EP0(void)
             default:
                 break;
             };
-            UEP0_CTRL = bUEP_T_TOG | UEP_R_RES_NAK | UEP_T_RES_ACK;;
             UEP0_T_LEN = 0;
+            UEP0_CTRL = bUEP_T_TOG | UEP_R_RES_NAK | UEP_T_RES_ACK;;
         }
 
     }
@@ -530,7 +532,7 @@ void usb_handle_EP1(void)
     uint8_t token = USB_INT_ST & MASK_UIS_TOKEN;
     if(token == UIS_TOKEN_IN) {
         // NAK on EP1 IN
-        UEP1_CTRL = (UEP1_CTRL ^ bUEP_T_TOG) | UEP_R_RES_NAK | UEP_T_RES_NAK;
         UEP1_T_LEN = 0;
+        UEP1_CTRL = (UEP1_CTRL ^ bUEP_T_TOG) | UEP_R_RES_NAK | UEP_T_RES_NAK;
     }
 }
